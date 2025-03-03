@@ -1,5 +1,6 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
+import { VoiceProvider } from '@/contexts/VoiceContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -16,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen`}>
-        {children}
+        <VoiceProvider>
+          {children}
+        </VoiceProvider>
       </body>
     </html>
   )

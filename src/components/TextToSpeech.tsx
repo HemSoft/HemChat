@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useVoice } from '@/contexts/VoiceContext'
 
 interface TextToSpeechProps {
   text: string
@@ -18,32 +19,10 @@ export default function TextToSpeech({
   onError,
 }: TextToSpeechProps) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
-  const [selectedVoiceName, setSelectedVoiceName] = useState('')
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const { selectedVoiceName, setSelectedVoiceName } = useVoice()
 
   const selectedVoice = voices.find(voice => voice.name === selectedVoiceName) || null
-
-  // Load saved voice preference
-  useEffect(() => {
-    try {
-      const savedVoice = localStorage.getItem('selectedVoice')
-      if (savedVoice) {
-        setSelectedVoiceName(JSON.parse(savedVoice))
-      }
-    } catch (error) {
-      console.warn('Error reading voice preference:', error)
-    }
-  }, [])
-
-  // Save voice preference
-  const saveVoicePreference = useCallback((voiceName: string) => {
-    try {
-      localStorage.setItem('selectedVoice', JSON.stringify(voiceName))
-      setSelectedVoiceName(voiceName)
-    } catch (error) {
-      console.warn('Error saving voice preference:', error)
-    }
-  }, [])
 
   // Memoize the speak function to prevent recreating it on every render
   const speak = useCallback(() => {
@@ -92,7 +71,7 @@ export default function TextToSpeech({
         // Final fallback to any voice
         const defaultVoice = femaleVoice || englishVoice || availableVoices[0]
         if (defaultVoice) {
-          saveVoicePreference(defaultVoice.name)
+          setSelectedVoiceName(defaultVoice.name)
         }
       }
     }
@@ -107,7 +86,7 @@ export default function TextToSpeech({
       window.speechSynthesis.cancel()
       window.speechSynthesis.onvoiceschanged = null
     }
-  }, [selectedVoiceName, saveVoicePreference])
+  }, [selectedVoiceName, setSelectedVoiceName])
 
   // Handle autoplay
   useEffect(() => {
@@ -125,7 +104,7 @@ export default function TextToSpeech({
     <div className="flex items-center space-x-2">
       <select
         value={selectedVoiceName}
-        onChange={(e) => saveVoicePreference(e.target.value)}
+        onChange={(e) => setSelectedVoiceName(e.target.value)}
         className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
           bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
       >
