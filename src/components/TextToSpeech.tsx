@@ -19,6 +19,7 @@ export default function TextToSpeech({
   const [isSpeaking, setIsSpeaking] = useState(false)
   const { selectedVoiceName, voices, autoSpeak } = useVoice()
   const wasManuallyStopped = useRef(false)
+  const hasSpokenOnce = useRef(false)
 
   const selectedVoice = voices.find(voice => voice.name === selectedVoiceName) || null
 
@@ -29,6 +30,7 @@ export default function TextToSpeech({
     // Cancel any ongoing speech
     window.speechSynthesis.cancel()
     wasManuallyStopped.current = false
+    hasSpokenOnce.current = true
 
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.voice = selectedVoice
@@ -53,9 +55,15 @@ export default function TextToSpeech({
     window.speechSynthesis.speak(utterance)
   }, [text, selectedVoice, onStart, onEnd, onError])
 
+  // Reset flags when text changes
+  useEffect(() => {
+    hasSpokenOnce.current = false
+    wasManuallyStopped.current = false
+  }, [text])
+
   // Handle autoplay
   useEffect(() => {
-    if (autoSpeak && text && !isSpeaking && selectedVoice && !wasManuallyStopped.current) {
+    if (autoSpeak && text && !isSpeaking && selectedVoice && !wasManuallyStopped.current && !hasSpokenOnce.current) {
       speak()
     }
   }, [autoSpeak, text, isSpeaking, selectedVoice, speak])
