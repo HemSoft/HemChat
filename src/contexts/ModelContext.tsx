@@ -7,10 +7,12 @@ type ModelContextType = {
   setSelectedModel: (model: string) => void
 }
 
+const DEFAULT_MODEL = 'benevolentjoker/nsfwmonika:latest'
+
 const ModelContext = createContext<ModelContextType | undefined>(undefined)
 
 export function ModelProvider({ children }: { children: React.ReactNode }) {
-  const [selectedModel, setSelectedModel] = useState('gpt-3.5-turbo')
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL)
 
   useEffect(() => {
     const savedModel = localStorage.getItem('selectedModel')
