@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 interface TextToSpeechProps {
   text: string
@@ -19,20 +18,36 @@ export default function TextToSpeech({
   onError,
 }: TextToSpeechProps) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
-  const [selectedVoiceName, setSelectedVoiceName] = useLocalStorage<string>('selectedVoice', '')
+  const [selectedVoiceName, setSelectedVoiceName] = useState('')
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [isClient, setIsClient] = useState(false)
-
-  // Set isClient to true once the component mounts
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
 
   const selectedVoice = voices.find(voice => voice.name === selectedVoiceName) || null
 
+  // Load saved voice preference
+  useEffect(() => {
+    try {
+      const savedVoice = localStorage.getItem('selectedVoice')
+      if (savedVoice) {
+        setSelectedVoiceName(JSON.parse(savedVoice))
+      }
+    } catch (error) {
+      console.warn('Error reading voice preference:', error)
+    }
+  }, [])
+
+  // Save voice preference
+  const saveVoicePreference = useCallback((voiceName: string) => {
+    try {
+      localStorage.setItem('selectedVoice', JSON.stringify(voiceName))
+      setSelectedVoiceName(voiceName)
+    } catch (error) {
+      console.warn('Error saving voice preference:', error)
+    }
+  }, [])
+
   // Memoize the speak function to prevent recreating it on every render
   const speak = useCallback(() => {
-    if (!text || !selectedVoice || !isClient) return
+    if (!text || !selectedVoice) return
 
     // Cancel any ongoing speech
     window.speechSynthesis.cancel()
@@ -58,12 +73,10 @@ export default function TextToSpeech({
     }
 
     window.speechSynthesis.speak(utterance)
-  }, [text, selectedVoice, onStart, onEnd, onError, isClient])
+  }, [text, selectedVoice, onStart, onEnd, onError])
 
   // Handle voice loading and initialization
   useEffect(() => {
-    if (!isClient) return
-
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices()
       setVoices(availableVoices)
@@ -78,7 +91,9 @@ export default function TextToSpeech({
         const englishVoice = availableVoices.find((voice) => voice.lang.includes('en'))
         // Final fallback to any voice
         const defaultVoice = femaleVoice || englishVoice || availableVoices[0]
-        setSelectedVoiceName(defaultVoice.name)
+        if (defaultVoice) {
+          saveVoicePreference(defaultVoice.name)
+        }
       }
     }
 
@@ -92,32 +107,25 @@ export default function TextToSpeech({
       window.speechSynthesis.cancel()
       window.speechSynthesis.onvoiceschanged = null
     }
-  }, [selectedVoiceName, isClient]) // Only depend on selectedVoiceName and isClient
+  }, [selectedVoiceName, saveVoicePreference])
 
   // Handle autoplay
   useEffect(() => {
-    if (autoPlay && text && !isSpeaking && selectedVoice && isClient) {
+    if (autoPlay && text && !isSpeaking && selectedVoice) {
       speak()
     }
-  }, [autoPlay, text, isSpeaking, selectedVoice, speak, isClient])
+  }, [autoPlay, text, isSpeaking, selectedVoice, speak])
 
   const stop = () => {
-    if (!isClient) return
     window.speechSynthesis.cancel()
     setIsSpeaking(false)
-  }
-
-  if (!isClient) {
-    return null // Don't render anything during SSR
   }
 
   return (
     <div className="flex items-center space-x-2">
       <select
         value={selectedVoiceName}
-        onChange={(e) => {
-          setSelectedVoiceName(e.target.value)
-        }}
+        onChange={(e) => saveVoicePreference(e.target.value)}
         className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
           bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
       >
