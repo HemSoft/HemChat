@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useVoice } from '@/contexts/VoiceContext'
 
 interface TextToSpeechProps {
@@ -18,6 +18,7 @@ export default function TextToSpeech({
 }: TextToSpeechProps) {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const { selectedVoiceName, voices, autoSpeak } = useVoice()
+  const wasManuallyStopped = useRef(false)
 
   const selectedVoice = voices.find(voice => voice.name === selectedVoiceName) || null
 
@@ -27,6 +28,7 @@ export default function TextToSpeech({
 
     // Cancel any ongoing speech
     window.speechSynthesis.cancel()
+    wasManuallyStopped.current = false
 
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.voice = selectedVoice
@@ -53,13 +55,14 @@ export default function TextToSpeech({
 
   // Handle autoplay
   useEffect(() => {
-    if (autoSpeak && text && !isSpeaking && selectedVoice) {
+    if (autoSpeak && text && !isSpeaking && selectedVoice && !wasManuallyStopped.current) {
       speak()
     }
   }, [autoSpeak, text, isSpeaking, selectedVoice, speak])
 
   const stop = () => {
     window.speechSynthesis.cancel()
+    wasManuallyStopped.current = true
     setIsSpeaking(false)
   }
 
