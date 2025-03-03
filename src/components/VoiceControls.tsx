@@ -47,29 +47,37 @@ export default function VoiceControls() {
   }, [selectedVoiceName, setSelectedVoiceName, setVoices])
 
   return (
-    <div className="flex items-center space-x-4">
-      <select
-        value={selectedVoiceName}
-        onChange={(e) => setSelectedVoiceName(e.target.value)}
-        className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
-          bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-      >
-        {voices.map((voice) => (
-          <option key={voice.name} value={voice.name}>
-            {voice.name}
-          </option>
-        ))}
-      </select>
-      <label className="flex items-center space-x-2 cursor-pointer">
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        <label htmlFor="voice-select" className="text-sm font-medium">Voice:</label>
+        <select
+          id="voice-select"
+          value={selectedVoiceName}
+          onChange={(e) => setSelectedVoiceName(e.target.value)}
+          className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
+            bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-w-[200px]"
+        >
+          <option value="">Select a voice</option>
+          {voices.map((voice) => (
+            <option key={voice.name} value={voice.name}>
+              {voice.name} ({voice.lang})
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-2">
         <input
           type="checkbox"
+          id="auto-speak"
           checked={autoSpeak}
           onChange={(e) => setAutoSpeak(e.target.checked)}
-          className="form-checkbox h-4 w-4 text-blue-500 rounded border-gray-300 
+          className="h-4 w-4 text-blue-500 rounded border-gray-300 
             dark:border-gray-600 focus:ring-blue-500"
         />
-        <span>Auto-speak responses</span>
-      </label>
+        <label htmlFor="auto-speak" className="text-sm font-medium">
+          Auto-speak responses
+        </label>
+      </div>
     </div>
   )
 } 
