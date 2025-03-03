@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 interface TextToSpeechProps {
@@ -24,46 +24,8 @@ export default function TextToSpeech({
 
   const selectedVoice = voices.find(voice => voice.name === selectedVoiceName) || null
 
-  useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices()
-      setVoices(availableVoices)
-      
-      // Only set default voice if no voice is selected
-      if (!selectedVoiceName) {
-        // Try to find a female English voice
-        const femaleVoice = availableVoices.find(
-          (voice) => voice.lang.includes('en') && voice.name.toLowerCase().includes('female')
-        )
-        // Fallback to any English voice
-        const englishVoice = availableVoices.find((voice) => voice.lang.includes('en'))
-        // Final fallback to any voice
-        const defaultVoice = femaleVoice || englishVoice || availableVoices[0]
-        if (defaultVoice) {
-          setSelectedVoiceName(defaultVoice.name)
-        }
-      }
-    }
-
-    // Load voices immediately
-    loadVoices()
-
-    // Chrome loads voices asynchronously
-    window.speechSynthesis.onvoiceschanged = loadVoices
-
-    return () => {
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.onvoiceschanged = null
-    }
-  }, [selectedVoiceName, setSelectedVoiceName])
-
-  useEffect(() => {
-    if (autoPlay && text && !isSpeaking) {
-      speak()
-    }
-  }, [text, autoPlay])
-
-  const speak = () => {
+  // Memoize the speak function to prevent recreating it on every render
+  const speak = useCallback(() => {
     if (!text || !selectedVoice) return
 
     // Cancel any ongoing speech
@@ -90,7 +52,46 @@ export default function TextToSpeech({
     }
 
     window.speechSynthesis.speak(utterance)
-  }
+  }, [text, selectedVoice, onStart, onEnd, onError])
+
+  // Handle voice loading and initialization
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices()
+      setVoices(availableVoices)
+      
+      // Only set default voice if no voice is selected and we have voices available
+      if (!selectedVoiceName && availableVoices.length > 0) {
+        // Try to find a female English voice
+        const femaleVoice = availableVoices.find(
+          (voice) => voice.lang.includes('en') && voice.name.toLowerCase().includes('female')
+        )
+        // Fallback to any English voice
+        const englishVoice = availableVoices.find((voice) => voice.lang.includes('en'))
+        // Final fallback to any voice
+        const defaultVoice = femaleVoice || englishVoice || availableVoices[0]
+        setSelectedVoiceName(defaultVoice.name)
+      }
+    }
+
+    // Load voices immediately
+    loadVoices()
+
+    // Chrome loads voices asynchronously
+    window.speechSynthesis.onvoiceschanged = loadVoices
+
+    return () => {
+      window.speechSynthesis.cancel()
+      window.speechSynthesis.onvoiceschanged = null
+    }
+  }, [selectedVoiceName]) // Only depend on selectedVoiceName
+
+  // Handle autoplay
+  useEffect(() => {
+    if (autoPlay && text && !isSpeaking && selectedVoice) {
+      speak()
+    }
+  }, [autoPlay, text, isSpeaking, selectedVoice, speak])
 
   const stop = () => {
     window.speechSynthesis.cancel()
