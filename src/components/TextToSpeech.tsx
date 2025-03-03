@@ -21,12 +21,18 @@ export default function TextToSpeech({
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [selectedVoiceName, setSelectedVoiceName] = useLocalStorage<string>('selectedVoice', '')
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+
+  // Set isClient to true once the component mounts
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const selectedVoice = voices.find(voice => voice.name === selectedVoiceName) || null
 
   // Memoize the speak function to prevent recreating it on every render
   const speak = useCallback(() => {
-    if (!text || !selectedVoice) return
+    if (!text || !selectedVoice || !isClient) return
 
     // Cancel any ongoing speech
     window.speechSynthesis.cancel()
@@ -52,10 +58,12 @@ export default function TextToSpeech({
     }
 
     window.speechSynthesis.speak(utterance)
-  }, [text, selectedVoice, onStart, onEnd, onError])
+  }, [text, selectedVoice, onStart, onEnd, onError, isClient])
 
   // Handle voice loading and initialization
   useEffect(() => {
+    if (!isClient) return
+
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices()
       setVoices(availableVoices)
@@ -84,18 +92,23 @@ export default function TextToSpeech({
       window.speechSynthesis.cancel()
       window.speechSynthesis.onvoiceschanged = null
     }
-  }, [selectedVoiceName]) // Only depend on selectedVoiceName
+  }, [selectedVoiceName, isClient]) // Only depend on selectedVoiceName and isClient
 
   // Handle autoplay
   useEffect(() => {
-    if (autoPlay && text && !isSpeaking && selectedVoice) {
+    if (autoPlay && text && !isSpeaking && selectedVoice && isClient) {
       speak()
     }
-  }, [autoPlay, text, isSpeaking, selectedVoice, speak])
+  }, [autoPlay, text, isSpeaking, selectedVoice, speak, isClient])
 
   const stop = () => {
+    if (!isClient) return
     window.speechSynthesis.cancel()
     setIsSpeaking(false)
+  }
+
+  if (!isClient) {
+    return null // Don't render anything during SSR
   }
 
   return (
