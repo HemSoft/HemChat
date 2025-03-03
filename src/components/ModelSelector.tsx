@@ -1,7 +1,8 @@
 'use client'
 
+import { useLocalStorage } from '@/hooks/useLocalStorage'
+
 interface ModelSelectorProps {
-  currentModel: string
   onModelChange: (model: string) => void
 }
 
@@ -24,11 +25,21 @@ const AVAILABLE_MODELS = [
   { name: 'LLaMA 3', id: 'llama3:latest' },
 ]
 
-export default function ModelSelector({ currentModel, onModelChange }: ModelSelectorProps) {
+export default function ModelSelector({ onModelChange }: ModelSelectorProps) {
+  const [selectedModel, setSelectedModel] = useLocalStorage<string>(
+    'selectedModel',
+    AVAILABLE_MODELS[0].id
+  )
+
+  const handleModelChange = (modelId: string) => {
+    setSelectedModel(modelId)
+    onModelChange(modelId)
+  }
+
   return (
     <select
-      value={currentModel}
-      onChange={(e) => onModelChange(e.target.value)}
+      value={selectedModel}
+      onChange={(e) => handleModelChange(e.target.value)}
       className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 
         border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1
         focus:outline-none focus:ring-2 focus:ring-blue-500"
