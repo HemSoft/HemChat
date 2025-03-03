@@ -1,5 +1,7 @@
 'use client'
 
+import TextToSpeech from './TextToSpeech'
+
 type Message = {
   role: 'user' | 'assistant'
   content: string
@@ -31,7 +33,15 @@ export default function ChatMessages({ messages, isLoading }: ChatMessagesProps)
                   : 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
               }`}
             >
-              {message.content}
+              <div className="mb-2">{message.content}</div>
+              {message.role === 'assistant' && !message.error && (
+                <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-700">
+                  <TextToSpeech
+                    text={message.content}
+                    autoPlay={false}
+                  />
+                </div>
+              )}
             </div>
           </div>
         ))}
