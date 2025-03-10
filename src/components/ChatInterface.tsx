@@ -1,31 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import { useChat } from '@/contexts/ChatContext'
 import ChatMessages from './ChatMessages'
 import ChatInput from './ChatInput'
-
-type Message = {
-  role: 'user' | 'assistant'
-  content: string
-  error?: boolean
-}
 
 interface ChatInterfaceProps {
   currentModel: string
 }
 
 export default function ChatInterface({ currentModel }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+  const { activeChat, updateChatMessages } = useChat()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const sendMessage = async (message: string) => {
-    if (!message.trim()) return
+    if (!message.trim() || !activeChat) return
 
     setError(null)
-    // Add user message to chat
-    const newMessages = [...messages, { role: 'user' as const, content: message }]
-    setMessages(newMessages)
+    const newMessages = [...(activeChat.messages || []), { role: 'user' as const, content: message }]
+    updateChatMessages(activeChat.id, newMessages)
     setIsLoading(true)
 
     try {
@@ -46,18 +40,26 @@ export default function ChatInterface({ currentModel }: ChatInterfaceProps) {
         throw new Error(data.error || 'Failed to send message')
       }
 
-      setMessages([...newMessages, { role: 'assistant' as const, content: data.message }])
+      updateChatMessages(activeChat.id, [...newMessages, { role: 'assistant' as const, content: data.message }])
     } catch (error) {
       console.error('Error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
       setError(errorMessage)
-      setMessages([
+      updateChatMessages(activeChat.id, [
         ...newMessages,
         { role: 'assistant' as const, content: errorMessage, error: true },
       ])
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (!activeChat) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">No active chat. Create a new chat to begin.</p>
+      </div>
+    )
   }
 
   return (
@@ -68,7 +70,7 @@ export default function ChatInterface({ currentModel }: ChatInterfaceProps) {
             <span className="block sm:inline">{error}</span>
           </div>
         )}
-        <ChatMessages messages={messages} isLoading={isLoading} />
+        <ChatMessages messages={activeChat.messages} isLoading={isLoading} />
       </div>
       <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
     </div>

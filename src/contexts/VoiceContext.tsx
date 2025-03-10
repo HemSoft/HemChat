@@ -5,65 +5,42 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 interface VoiceContextType {
   selectedVoiceName: string
   setSelectedVoiceName: (name: string) => void
-  autoSpeak: boolean
-  setAutoSpeak: (auto: boolean) => void
   voices: SpeechSynthesisVoice[]
   setVoices: (voices: SpeechSynthesisVoice[]) => void
+  autoSpeak: boolean
+  setAutoSpeak: (autoSpeak: boolean) => void
 }
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined)
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const [selectedVoiceName, setSelectedVoiceName] = useState('')
-  const [autoSpeak, setAutoSpeak] = useState(false)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [autoSpeak, setAutoSpeak] = useState(false)
 
-  // Try to load saved preferences when the provider mounts
   useEffect(() => {
-    try {
-      const savedVoice = globalThis?.localStorage?.getItem('selectedVoice')
-      if (savedVoice) {
-        setSelectedVoiceName(JSON.parse(savedVoice))
-      }
-
-      const savedAutoSpeak = globalThis?.localStorage?.getItem('autoSpeak')
-      if (savedAutoSpeak) {
-        setAutoSpeak(JSON.parse(savedAutoSpeak))
-      }
-    } catch (error) {
-      console.warn('Error reading preferences:', error)
-    }
+    // Load saved preferences
+    const savedVoice = localStorage.getItem('selectedVoice')
+    const savedAutoSpeak = localStorage.getItem('autoSpeak')
+    if (savedVoice) setSelectedVoiceName(savedVoice)
+    if (savedAutoSpeak) setAutoSpeak(savedAutoSpeak === 'true')
   }, [])
 
-  // Try to save voice preference when it changes
   useEffect(() => {
-    if (selectedVoiceName) {
-      try {
-        globalThis?.localStorage?.setItem('selectedVoice', JSON.stringify(selectedVoiceName))
-      } catch (error) {
-        console.warn('Error saving voice preference:', error)
-      }
-    }
-  }, [selectedVoiceName])
-
-  // Try to save auto-speak preference when it changes
-  useEffect(() => {
-    try {
-      globalThis?.localStorage?.setItem('autoSpeak', JSON.stringify(autoSpeak))
-    } catch (error) {
-      console.warn('Error saving auto-speak preference:', error)
-    }
-  }, [autoSpeak])
+    // Save preferences
+    localStorage.setItem('selectedVoice', selectedVoiceName)
+    localStorage.setItem('autoSpeak', String(autoSpeak))
+  }, [selectedVoiceName, autoSpeak])
 
   return (
-    <VoiceContext.Provider 
-      value={{ 
-        selectedVoiceName, 
+    <VoiceContext.Provider
+      value={{
+        selectedVoiceName,
         setSelectedVoiceName,
+        voices,
+        setVoices,
         autoSpeak,
         setAutoSpeak,
-        voices,
-        setVoices
       }}
     >
       {children}

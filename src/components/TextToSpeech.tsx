@@ -1,89 +1,89 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { Play, Pause, StopCircle } from 'lucide-react'
 import { useVoice } from '@/contexts/VoiceContext'
 
 interface TextToSpeechProps {
   text: string
-  onStart?: () => void
-  onEnd?: () => void
-  onError?: (error: string) => void
+  autoPlay?: boolean
 }
 
-export default function TextToSpeech({
-  text,
-  onStart,
-  onEnd,
-  onError,
-}: TextToSpeechProps) {
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const { selectedVoiceName, voices, autoSpeak } = useVoice()
-  const wasManuallyStopped = useRef(false)
-  const hasSpokenOnce = useRef(false)
+export default function TextToSpeech({ text, autoPlay = false }: TextToSpeechProps) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [utterance, setUtterance] = useState<SpeechSynthesisUtterance | null>(null)
+  const { selectedVoiceName, voices } = useVoice()
 
-  const selectedVoice = voices.find(voice => voice.name === selectedVoiceName) || null
+  useEffect(() => {
+    const newUtterance = new SpeechSynthesisUtterance(text)
+    const selectedVoice = voices.find(voice => voice.name === selectedVoiceName)
+    if (selectedVoice) {
+      newUtterance.voice = selectedVoice
+    }
 
-  // Memoize the speak function to prevent recreating it on every render
-  const speak = useCallback(() => {
-    if (!text || !selectedVoice) return
+    newUtterance.onend = () => setIsPlaying(false)
+    newUtterance.onerror = () => setIsPlaying(false)
+    setUtterance(newUtterance)
 
-    // Cancel any ongoing speech
+    return () => {
+      window.speechSynthesis.cancel()
+    }
+  }, [text, selectedVoiceName, voices])
+
+  useEffect(() => {
+    if (autoPlay && utterance && selectedVoiceName) {
+      handlePlay()
+    }
+  }, [utterance, autoPlay, selectedVoiceName])
+
+  const handlePlay = () => {
+    if (!utterance) return
+
     window.speechSynthesis.cancel()
-    wasManuallyStopped.current = false
-    hasSpokenOnce.current = true
-
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.voice = selectedVoice
-    utterance.rate = 1.0
-    utterance.pitch = 1.0
-
-    utterance.onstart = () => {
-      setIsSpeaking(true)
-      onStart?.()
-    }
-
-    utterance.onend = () => {
-      setIsSpeaking(false)
-      onEnd?.()
-    }
-
-    utterance.onerror = (event) => {
-      setIsSpeaking(false)
-      onError?.(event.error)
-    }
-
     window.speechSynthesis.speak(utterance)
-  }, [text, selectedVoice, onStart, onEnd, onError])
-
-  // Reset flags when text changes
-  useEffect(() => {
-    hasSpokenOnce.current = false
-    wasManuallyStopped.current = false
-  }, [text])
-
-  // Handle autoplay
-  useEffect(() => {
-    if (autoSpeak && text && !isSpeaking && selectedVoice && !wasManuallyStopped.current && !hasSpokenOnce.current) {
-      speak()
-    }
-  }, [autoSpeak, text, isSpeaking, selectedVoice, speak])
-
-  const stop = () => {
-    window.speechSynthesis.cancel()
-    wasManuallyStopped.current = true
-    setIsSpeaking(false)
+    setIsPlaying(true)
   }
 
+  const handlePause = () => {
+    window.speechSynthesis.pause()
+    setIsPlaying(false)
+  }
+
+  const handleStop = () => {
+    window.speechSynthesis.cancel()
+    setIsPlaying(false)
+  }
+
+  if (!selectedVoiceName) return null
+
   return (
-    <div className="flex justify-end">
-      <button
-        onClick={isSpeaking ? stop : speak}
-        disabled={!text || voices.length === 0}
-        className="px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 
-          disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isSpeaking ? 'Stop' : 'Speak'}
-      </button>
+    <div className="flex items-center gap-2">
+      {isPlaying ? (
+        <>
+          <button
+            onClick={handlePause}
+            className="p-1 hover:text-blue-500 text-gray-900 dark:text-gray-100"
+            title="Pause"
+          >
+            <Pause size={16} />
+          </button>
+          <button
+            onClick={handleStop}
+            className="p-1 hover:text-blue-500 text-gray-900 dark:text-gray-100"
+            title="Stop"
+          >
+            <StopCircle size={16} />
+          </button>
+        </>
+      ) : (
+        <button
+          onClick={handlePlay}
+          className="p-1 hover:text-blue-500 text-gray-900 dark:text-gray-100"
+          title="Play"
+        >
+          <Play size={16} />
+        </button>
+      )}
     </div>
   )
 } 

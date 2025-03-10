@@ -49,7 +49,7 @@ export default function VoiceControls() {
   return (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-2">
-        <label htmlFor="voice-select" className="text-sm font-medium">Voice:</label>
+        <label htmlFor="voice-select" className="text-sm font-medium text-gray-900 dark:text-gray-100">Voice:</label>
         <select
           id="voice-select"
           value={selectedVoiceName}
@@ -74,7 +74,7 @@ export default function VoiceControls() {
           className="h-4 w-4 text-blue-500 rounded border-gray-300 
             dark:border-gray-600 focus:ring-blue-500"
         />
-        <label htmlFor="auto-speak" className="text-sm font-medium">
+        <label htmlFor="auto-speak" className="text-sm font-medium text-gray-900 dark:text-gray-100">
           Auto-speak responses
         </label>
       </div>
